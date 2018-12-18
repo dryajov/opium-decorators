@@ -1,0 +1,33 @@
+{
+  "name": "opium-property-resolvers",
+  "version": "0.0.1",
+  "main": "lib/index.js",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dryajov/opium-property-resolvers.git"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "aegir test",
+    "lint": "aegir lint"
+  },
+  "devDependencies": {
+    "aegir": "^17.1.1"
+  },
+  "keywords": [
+    "Opium IoC",
+    "Opium DI",
+    "Opium dependency injection",
+    "Opium inversion of control"
+  ],
+  "dependencies": {
+    "chai": "^4.2.0",
+    "debug": "^4.1.0",
+    "dirty-chai": "^2.0.1",
+    "opium-ioc": "^2.0.0"
+  }
+}
