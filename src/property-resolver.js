@@ -22,12 +22,9 @@ class PropResolver extends Resolver {
    * @returns {*}
    */
   resolve (obj) {
-    if (!(this.propName in obj)) {
-      console.info(`Undefined object or no injector property "${this.propName}" found!`)
-      return
+    if (obj[this.propName]) {
+      return obj[this.propName]
     }
-
-    return obj[this.propName]
   }
 }
 

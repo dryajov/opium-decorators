@@ -36,7 +36,11 @@ class Resolver {
    * @param {Injector} injector - an instance of opium-ioc compatible object
    */
   constructor (injector) {
-    this.injector = injector
+    this._injector = injector
+  }
+
+  get injector () {
+    return this._injector
   }
 
   /**
@@ -52,26 +56,24 @@ class Resolver {
     const deps = this.resolve(dep)
     const type = options.type
     const lifeCycle = options.lifeCycle
-    if (deps) {
-      switch (type) {
-        case TYPE: {
-          this.injector.registerType(name, dep, deps, lifeCycle)
-          break
-        }
-
-        case FACTORY: {
-          this.injector.registerFactory(name, dep, deps, lifeCycle)
-          break
-        }
-
-        case INSTANCE: {
-          this.injector.registerInstance(name, dep, deps, lifeCycle)
-          break
-        }
-
-        default:
-          throw new Error(`Unknown type ${type}`)
+    switch (type) {
+      case TYPE: {
+        this._injector.registerType(name, dep, deps, lifeCycle)
+        break
       }
+
+      case FACTORY: {
+        this._injector.registerFactory(name, dep, deps, lifeCycle)
+        break
+      }
+
+      case INSTANCE: {
+        this._injector.registerInstance(name, dep, deps, lifeCycle)
+        break
+      }
+
+      default:
+        throw new Error(`Unknown type ${type}`)
     }
   }
 
