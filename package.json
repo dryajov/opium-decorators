@@ -16,7 +16,9 @@
     "lint": "aegir lint"
   },
   "devDependencies": {
-    "aegir": "^17.1.1"
+    "aegir": "^17.1.1",
+    "chai": "^4.2.0",
+    "dirty-chai": "^2.0.1"
   },
   "keywords": [
     "Opium IoC",
@@ -25,9 +27,7 @@
     "Opium inversion of control"
   ],
   "dependencies": {
-    "chai": "^4.2.0",
     "debug": "^4.1.0",
-    "dirty-chai": "^2.0.1",
-    "opium-ioc": "^2.0.0"
+    "opium-ioc": "^2.3.0"
   }
 }
