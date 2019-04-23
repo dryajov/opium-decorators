@@ -12,13 +12,20 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "aegir test",
-    "lint": "aegir lint"
+    "build": "tsc",
+    "test": "npm run build && mocha --require source-map-support/register dist/test/",
+    "lint": "tslint --project tsconfig.json",
+    "lint:fix": "tslint --project tsconfig.json --fix",
+    "prepublishOnly": "npm run test"
   },
   "devDependencies": {
-    "aegir": "^17.1.1",
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
     "chai": "^4.2.0",
-    "dirty-chai": "^2.0.1"
+    "dirty-chai": "^2.0.1",
+    "source-map-support": "^0.5.12",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.4"
   },
   "keywords": [
     "Opium IoC",
@@ -28,6 +35,7 @@
   ],
   "dependencies": {
     "debug": "^4.1.0",
-    "opium-ioc": "^2.3.0"
+    "opium-ioc": "^2.3.0",
+    "reflect-metadata": "^0.1.13"
   }
 }
