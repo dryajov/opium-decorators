@@ -10,20 +10,20 @@ chai.use(dirtyChai)
 import { inject, app } from '../src'
 
 describe('decorators', () => {
-  it('should register class', () => {
+  it('should register class', (done) => {
     @inject
     class MyClass {
       public greet: string
-
-      constructor() {
-         this.greet = 'hello world!'
+      constructor () {
+        this.greet = 'hello world!'
       }
     }
 
     @app
     class MyApp {
-      constructor(param1: MyClass) {
-        expect(param1.greet).to.eq('hello world!')
+      constructor (param1: MyClass) {
+        expect(param1.greet).to.be.eq('hello world!')
+        done()
       }
     }
   })
