@@ -1,12 +1,12 @@
 {
-  "name": "opium-property-resolvers",
+  "name": "opium-decorator-resolvers",
   "version": "0.0.1",
   "main": "lib/index.js",
   "private": false,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dryajov/opium-property-resolvers.git"
+    "url": "git://github.com/dryajov/opium-decorator-resolvers.git"
   },
   "engines": {
     "node": ">=0.10.0"
@@ -34,10 +34,10 @@
     "typescript": "^3.4.4"
   },
   "keywords": [
-    "Opium IoC",
-    "Opium DI",
-    "Opium dependency injection",
-    "Opium inversion of control"
+    "Opium IoC decorators",
+    "Opium DI decorators",
+    "Opium dependency injection decorators",
+    "Opium inversion of control decorators"
   ],
   "dependencies": {
     "async": "^2.6.2",
