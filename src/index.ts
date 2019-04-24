@@ -1,24 +1,24 @@
 import 'reflect-metadata'
 import { Opium, LifeCycle, Dependency } from 'opium-ioc'
 
-const OPIUM_META = Symbol.for('opium:meta')
+export const OPIUM_META = Symbol.for('design:opium:meta')
 
-enum ResolverType {
+export enum ResolverType {
   TYPE,
   FACTORY,
   INSTANCE
 }
 
-class ResolverMeta {
+export class ResolverMeta {
   public id: any
-  public reflectData: any
-  public lifeCycle: LifeCycle = LifeCycle.SINGLETON
-  public type: ResolverType = ResolverType.TYPE
-  public deps: ResolverMeta[] = []
   public target: any
+  public type: ResolverType = ResolverType.TYPE
+  public lifeCycle: LifeCycle = LifeCycle.SINGLETON
+  public deps: ResolverMeta[] = []
+  public metaKey: any
 }
 
-function isCommonType (name: string) {
+function isSimpleType (name: string) {
   return [
     'String',
     'Number',
@@ -28,10 +28,6 @@ function isCommonType (name: string) {
     'Array',
     'Function'
   ].indexOf(name) > -1
-}
-
-function throwCommonType (typeName: string) {
-  throw new Error(`type ${typeName} requires a custom identifier, consider annotating with @inject('my-id')`)
 }
 
 function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
@@ -80,11 +76,11 @@ function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
 }
 
 let container: Opium
-export function app (id?: any, lifeCycle?: LifeCycle): any {
+export function inject (id?: string | Symbol, lifeCycle?: LifeCycle): any {
   container = new Opium(id, lifeCycle)
   async function dep (target: any, key?: string, descriptor?: PropertyDescriptor) {
     // first inject the app itself
-    const depFactory: Function = inject(target)
+    const depFactory: Function = register(target)
     if (depFactory) {
       depFactory(target, key, descriptor)
     }
@@ -100,53 +96,78 @@ export function app (id?: any, lifeCycle?: LifeCycle): any {
   typeof id === 'string' ? dep : dep(id)
 }
 
-export function inject (id?: any, lifeCycle?: LifeCycle): any {
-  function dep (target: any, key?: string, descriptor?: PropertyDescriptor) {
-    const resolverMeta: ResolverMeta = new ResolverMeta()
-    resolverMeta.reflectData = Reflect.getMetadata('design:type', target)
-
-    // set an id on the target if provided
-    let typeName: string
-    // id overrides the type name
-    if (id) {
-      typeName = typeof id.name === 'string' ? id.name : id
-    } else {
-      typeName = target.name
+export function register (id?: any, lifeCycle?: LifeCycle): any {
+  function factory (...args: any[]) {
+    const [target, key, descriptor] = args
+    let targetMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
+    if (!targetMeta) {
+      targetMeta = new ResolverMeta()
+      targetMeta.metaKey = key
+      // save the resolver metadata
+      Reflect.defineMetadata(OPIUM_META, targetMeta, target, key)
     }
 
-    // set the dependency id
-    resolverMeta.id = typeName
+    switch (args.length) {
+      // constructor
+      case 1: {
+        targetMeta.type = ResolverType.TYPE
+        targetMeta.lifeCycle = lifeCycle || targetMeta.lifeCycle
+        targetMeta.target = target
+        if (id) {
+          targetMeta.id = id
+        } else {
+          targetMeta.id = target
+        }
 
-    // check that the type is not a common type
-    if (isCommonType(typeName)) {
-      throwCommonType(typeName)
+        return
+      }
+
+      // case 2: {
+      // }
+
+      // method or params
+      case 3: {
+        // if descriptor is a number, then this is a param
+        if (typeof descriptor === 'number') {
+          // register dependencies if there are any
+          const annotatedDeps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
+          registerParam(annotatedDeps[descriptor], descriptor)
+          return
+        }
+
+        targetMeta.type = ResolverType.FACTORY
+        targetMeta.target = descriptor.value
+        targetMeta.lifeCycle = lifeCycle || targetMeta.lifeCycle
+        if (id) {
+          targetMeta.id = id
+        } else {
+          targetMeta.id = Reflect.getMetadata('design:returntype', target, key)
+        }
+
+        // get the non annotated params and place them in the right index
+        const deps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
+        deps.forEach((d: any, i: number) => {
+          if (!targetMeta.deps[i]) {
+            registerParam(d, i)
+          }
+        })
+
+        return
+      }
     }
 
-    // check that any of its dependencies has a unique identifier as well
-    const deps: any[] = Reflect.getMetadata('design:paramtypes', target)
-    deps.forEach((d: any) => {
-      const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, d)
-      isCommonType(depMeta.id) && throwCommonType(depMeta.id)
-      resolverMeta.deps.push(depMeta)
-    })
-
-    // this is a class, register as a type
-    if (typeof target === 'function' && !key && !descriptor) {
-      resolverMeta.type = ResolverType.TYPE
-    } else if (typeof target === 'function' && key && descriptor) {
-      resolverMeta.type = ResolverType.FACTORY
-    } else {
-      resolverMeta.type = ResolverType.INSTANCE
+    function registerParam (param: any, index: number) {
+      if (isSimpleType(param.name) && !id) {
+        throw new Error(`type ${param.name} requires a custom identifier, ` +
+          `consider annotating with @register('my-id')`)
+      }
+      let depMeta: ResolverMeta = new ResolverMeta()
+      depMeta.id = id || param
+      depMeta.target = param
+      depMeta.lifeCycle = lifeCycle || depMeta.lifeCycle
+      targetMeta.deps[index] = depMeta
     }
-
-    resolverMeta.target = target
-    resolverMeta.lifeCycle = lifeCycle || resolverMeta.lifeCycle
-
-    // save the resolver metadata
-    Reflect.defineMetadata(OPIUM_META, resolverMeta, target)
   }
 
-  return typeof id === 'string'
-    ? dep
-    : dep(id)
+  return factory
 }
