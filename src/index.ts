@@ -1,6 +1,9 @@
 import 'reflect-metadata'
 import { Opium, LifeCycle, Dependency } from 'opium-ioc'
 import { nextTick } from 'async'
+import { debug as debugFactory } from 'debug'
+
+const debug = debugFactory('opium-decorator-resolvers')
 
 export const OPIUM_META = Symbol.for('design:opium:meta')
 export enum ResolverType {
@@ -30,11 +33,15 @@ function isSimpleType (name: string) {
   ].indexOf(name) > -1
 }
 
+const registry: Map<any, ResolverMeta> = new Map()
 function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
   const stack: ResolverMeta[] = []
   stack.push(rootDep)
   while (stack.length) {
-    const dep = stack.pop()
+    const depRef: ResolverMeta | undefined = stack.pop()
+    if (!depRef) continue
+
+    const dep = registry.get(depRef.id)
     if (!dep) continue
 
     // skip if its already registered
@@ -90,7 +97,13 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
     const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
     registerWithContainer(depMeta, container)
     const app: Dependency = container.getDep(depMeta.id)
-    nextTick(async () => app.inject())
+    nextTick(async () => {
+      try {
+        await app.inject()
+      } catch (e) {
+        debug(e)
+      }
+    })
   }
 }
 
@@ -118,9 +131,10 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
         }
 
         registerDeps(targetMeta, target, key)
-        return
+        break
       }
 
+      // properties
       // case 2: {
       // }
 
@@ -144,9 +158,11 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
         }
 
         registerDeps(targetMeta, target, key)
-        return
+        break
       }
     }
+
+    registry.set(targetMeta.id, targetMeta)
   }
 }
 
