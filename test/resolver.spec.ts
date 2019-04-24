@@ -120,8 +120,8 @@ describe('metadata', () => {
     })
 
     it('should annotate method and register with alternate type', () => {
-      class MyReturnType {}
-      class MyOtherReturnType {}
+      class MyReturnType { }
+      class MyOtherReturnType { }
 
       class MyClass {
         @register(MyOtherReturnType)
@@ -142,7 +142,7 @@ describe('metadata', () => {
     })
 
     it('should annotate method and simple parameters', () => {
-      class MyReturnType {}
+      class MyReturnType { }
 
       class MyClass {
         @register()
@@ -170,8 +170,8 @@ describe('metadata', () => {
     })
 
     it('should annotate method and register custom type param', () => {
-      class MyReturnType {}
-      class MyParam {}
+      class MyReturnType { }
+      class MyParam { }
 
       class MyClass {
         @register()
@@ -199,8 +199,8 @@ describe('metadata', () => {
     })
 
     it('should annotate method and register custom and simple type param', () => {
-      class MyReturnType {}
-      class MyParam {}
+      class MyReturnType { }
+      class MyParam { }
 
       class MyClass {
         @register()
@@ -253,11 +253,100 @@ describe('decorators', () => {
     }
   })
 
-  it('should inject function', () => {
+  it('should inject constructor with mixed params', (done) => {
+    @register()
     class MyClass {
-      @register()
-      func (param1: string) {
-        console.log(`this is my class`, param1)
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class Name {
+      @register('name')
+      name (): string {
+        return 'bob'
+      }
+    }
+
+    @inject()
+    class MyApp {
+      constructor (param1: MyClass, @register('name') name: string) {
+        expect(param1.greet).to.be.eq('hello world!')
+        expect(name).to.be.eq('bob')
+        done()
+      }
+    }
+  })
+
+  it('should inject method', (done) => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class Name {
+      @register('name')
+      name (): string {
+        return 'bob'
+      }
+    }
+
+    class MyApp {
+      @inject()
+      factory (param1: MyClass, @register('name') name: string) {
+        expect(param1.greet).to.be.eq('hello world!')
+        expect(name).to.be.eq('bob')
+        done()
+      }
+    }
+  })
+
+  it('should inject static method', (done) => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class Name {
+      @register('name')
+      name (): string {
+        return 'bob'
+      }
+    }
+
+    class MyApp {
+      @inject()
+      static factory (param1: MyClass, @register('name') name: string) {
+        expect(param1.greet).to.be.eq('hello world!')
+        expect(name).to.be.eq('bob')
+        done()
+      }
+    }
+  })
+
+  // FIXME: this should fail
+  it('should fail injecting', (done) => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class MyApp {
+      @inject()
+      static factory (param1: MyClass, @register('name') name: string) {
+        expect(param1.greet).to.be.eq('hello world!')
+        expect(name).to.be.eq('bob')
+        done()
       }
     }
   })
