@@ -1,5 +1,3 @@
-/* eslint-env mocha */
-
 import 'reflect-metadata'
 
 import * as chai from 'chai'
@@ -91,15 +89,11 @@ describe('metadata', () => {
       expect(param1).to.be.instanceOf(ResolverMeta)
 
       expect(param1.id).to.deep.eq('name')
-      expect(param1.target).to.instanceOf(String.constructor)
-      expect(param1.deps.length).to.eq(0)
 
       expect(param2).to.exist()
       expect(param2).to.be.instanceOf(ResolverMeta)
 
       expect(param2.id).to.deep.eq('id')
-      expect(param2.target).to.instanceOf(Number.constructor)
-      expect(param2.deps.length).to.eq(0)
     })
   })
 
@@ -173,13 +167,11 @@ describe('metadata', () => {
       expect(param1).to.be.instanceOf(ResolverMeta)
 
       expect(param1.id).to.deep.eq('name')
-      expect(param1.target).to.deep.eq(String)
-      expect(param1.deps.length).to.eq(0)
     })
 
     it('should annotate method and register custom type param', () => {
       class MyReturnType {}
-      class MyParam{}
+      class MyParam {}
 
       class MyClass {
         @register()
@@ -204,13 +196,11 @@ describe('metadata', () => {
       expect(param1).to.be.instanceOf(ResolverMeta)
 
       expect(param1.id).to.deep.eq(MyParam)
-      expect(param1.target).to.deep.eq(MyParam)
-      expect(param1.deps.length).to.eq(0)
     })
 
     it('should annotate method and register custom and simple type param', () => {
       class MyReturnType {}
-      class MyParam{}
+      class MyParam {}
 
       class MyClass {
         @register()
@@ -235,21 +225,17 @@ describe('metadata', () => {
       expect(param1).to.be.instanceOf(ResolverMeta)
 
       expect(param1.id).to.deep.eq(MyParam)
-      expect(param1.target).to.deep.eq(MyParam)
-      expect(param1.deps.length).to.eq(0)
 
       expect(param2).to.exist()
       expect(param2).to.be.instanceOf(ResolverMeta)
 
       expect(param2.id).to.deep.eq('name')
-      expect(param2.target).to.deep.eq(String)
-      expect(param2.deps.length).to.eq(0)
     })
   })
 })
 
 describe('decorators', () => {
-  it('should register class', (done) => {
+  it('should inject constructor', (done) => {
     @register()
     class MyClass {
       public greet: string

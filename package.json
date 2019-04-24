@@ -21,6 +21,7 @@
     "prepublishOnly": "npm run test"
   },
   "devDependencies": {
+    "@types/async": "^2.4.1",
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.6",
     "chai": "^4.2.0",
@@ -38,6 +39,7 @@
     "Opium inversion of control"
   ],
   "dependencies": {
+    "async": "^2.6.2",
     "debug": "^4.1.0",
     "opium-ioc": "^2.3.0",
     "reflect-metadata": "^0.1.13"

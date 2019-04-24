@@ -1,8 +1,8 @@
 import 'reflect-metadata'
 import { Opium, LifeCycle, Dependency } from 'opium-ioc'
+import { nextTick } from 'async'
 
 export const OPIUM_META = Symbol.for('design:opium:meta')
-
 export enum ResolverType {
   TYPE,
   FACTORY,
@@ -76,28 +76,26 @@ function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
 }
 
 let container: Opium
-export function inject (id?: string | Symbol, lifeCycle?: LifeCycle): any {
-  container = new Opium(id, lifeCycle)
-  async function dep (target: any, key?: string, descriptor?: PropertyDescriptor) {
+export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCycle): any {
+  container = new Opium(name, lifeCycle)
+  return function factory (...args: any[]) {
+    const [target, key] = args
     // first inject the app itself
-    const depFactory: Function = register(target)
+    const depFactory: Function = register(id)
     if (depFactory) {
-      depFactory(target, key, descriptor)
+      depFactory(...args)
     }
 
     // now lets register everything with the container the deps graph
-    const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target)
+    const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
     registerWithContainer(depMeta, container)
     const app: Dependency = container.getDep(depMeta.id)
-    await app.inject()
-    return target
+    nextTick(async () => app.inject())
   }
-
-  typeof id === 'string' ? dep : dep(id)
 }
 
 export function register (id?: any, lifeCycle?: LifeCycle): any {
-  function factory (...args: any[]) {
+  return function factory (...args: any[]) {
     const [target, key, descriptor] = args
     let targetMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
     if (!targetMeta) {
@@ -119,6 +117,7 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
           targetMeta.id = target
         }
 
+        registerDeps(targetMeta, target, key)
         return
       }
 
@@ -131,7 +130,7 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
         if (typeof descriptor === 'number') {
           // register dependencies if there are any
           const annotatedDeps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
-          registerParam(annotatedDeps[descriptor], descriptor)
+          registerParam(annotatedDeps[descriptor], descriptor, targetMeta, lifeCycle, id)
           return
         }
 
@@ -144,30 +143,30 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
           targetMeta.id = Reflect.getMetadata('design:returntype', target, key)
         }
 
-        // get the non annotated params and place them in the right index
-        const deps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
-        deps.forEach((d: any, i: number) => {
-          if (!targetMeta.deps[i]) {
-            registerParam(d, i)
-          }
-        })
-
+        registerDeps(targetMeta, target, key)
         return
       }
     }
+  }
+}
 
-    function registerParam (param: any, index: number) {
-      if (isSimpleType(param.name) && !id) {
-        throw new Error(`type ${param.name} requires a custom identifier, ` +
-          `consider annotating with @register('my-id')`)
-      }
-      let depMeta: ResolverMeta = new ResolverMeta()
-      depMeta.id = id || param
-      depMeta.target = param
-      depMeta.lifeCycle = lifeCycle || depMeta.lifeCycle
-      targetMeta.deps[index] = depMeta
+function registerDeps (targetMeta: ResolverMeta, target: any, key: any) {
+  // get the non annotated params and place them in the right index
+  const deps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
+  deps.forEach((d: any, i: number) => {
+    if (!targetMeta.deps[i]) {
+      registerParam(d, i, targetMeta)
     }
+  })
+}
+
+function registerParam (param: any, index: number, targetMeta: ResolverMeta, lifeCycle?: LifeCycle, id?: any) {
+  if (isSimpleType(param.name) && !id) {
+    throw new Error(`type ${param.name} requires a custom identifier, ` +
+      `consider annotating with @register('my-id')`)
   }
 
-  return factory
+  let depMeta: ResolverMeta = new ResolverMeta()
+  depMeta.id = id || param
+  targetMeta.deps[index] = depMeta
 }
