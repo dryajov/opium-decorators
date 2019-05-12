@@ -5,11 +5,18 @@ import { debug as debugFactory } from 'debug'
 
 const debug = debugFactory('opium-decorator-resolvers')
 
+export { LifeCycle }
 export const OPIUM_META = Symbol.for('design:opium:meta')
 export enum ResolverType {
   TYPE,
   FACTORY,
   INSTANCE
+}
+
+export enum TargeType {
+  CONSTRUCTOR = 1,
+  PROPERTY = 2,
+  METHOD = 3
 }
 
 export class ResolverMeta {
@@ -60,8 +67,25 @@ function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
       }
 
       case ResolverType.TYPE: {
-        container.registerType(dep.id,
-          dep.target,
+        // register prototype properties
+        const depMeta: ResolverMeta | undefined = registry.get(dep.target.prototype)
+        if (depMeta) {
+          stack.push(...depMeta.deps)
+        }
+
+        container.registerFactory(dep.id,
+          async (...args: any[]) => {
+            const res = Reflect.construct(dep.target, args)
+            if (depMeta) {
+              await Promise.all(depMeta.deps.map(async (d: any) => {
+                const dep = await container.getDep(d.id).injectDeps()
+                const injectDep = await dep.injected
+                res[d.metaKey] = injectDep
+                return res[d.metaKey]
+              }))
+            }
+            return res
+          },
           dep.deps.map(a => a.id),
           dep.lifeCycle)
         break
@@ -102,6 +126,7 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
         await app.inject()
       } catch (e) {
         debug(e)
+        return Promise.reject(e)
       }
     })
   }
@@ -110,36 +135,69 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
 export function register (id?: any, lifeCycle?: LifeCycle): any {
   return function factory (...args: any[]) {
     const [target, key, descriptor] = args
-    let targetMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
-    if (!targetMeta) {
-      targetMeta = new ResolverMeta()
-      targetMeta.metaKey = key
-      // save the resolver metadata
-      Reflect.defineMetadata(OPIUM_META, targetMeta, target, key)
+    if (args.length === 3 && typeof args[2] === 'undefined') args.pop()
+    if (args.length === 2 && typeof args[1] === 'undefined') args.pop()
+
+    let targetType: TargeType = args.length
+    if (descriptor && (descriptor.get || descriptor.set)) {
+      targetType = TargeType.PROPERTY
     }
 
-    switch (args.length) {
+    let targetMeta: ResolverMeta | null = null
+    switch (targetType) {
       // constructor
-      case 1: {
+      case TargeType.CONSTRUCTOR: {
+        targetMeta = Reflect.getMetadata(OPIUM_META, target, key)
+        if (!targetMeta) {
+          targetMeta = new ResolverMeta()
+          targetMeta.target = target
+          // save the resolver metadata
+          Reflect.defineMetadata(OPIUM_META, targetMeta, target, key)
+        }
+
         targetMeta.type = ResolverType.TYPE
         targetMeta.lifeCycle = lifeCycle || targetMeta.lifeCycle
         targetMeta.target = target
-        if (id) {
-          targetMeta.id = id
-        } else {
-          targetMeta.id = target
-        }
+        targetMeta.id = id || target
 
         registerDeps(targetMeta, target, key)
         break
       }
 
       // properties
-      // case 2: {
-      // }
+      case TargeType.PROPERTY: {
+        targetMeta = Reflect.getMetadata(OPIUM_META, target)
+        if (!targetMeta) {
+          targetMeta = new ResolverMeta()
+          targetMeta.target = target
+          // save the resolver metadata
+          Reflect.defineMetadata(OPIUM_META, targetMeta, target)
+        }
+
+        let depMeta: ResolverMeta = new ResolverMeta()
+        depMeta.id = id
+        depMeta.metaKey = key
+        targetMeta.deps.push(depMeta)
+
+        if (typeof target[key] !== 'undefined') {
+          depMeta.type = ResolverType.INSTANCE
+          depMeta.target = target[key]
+          registry.set(depMeta.id, depMeta)
+        }
+
+        break
+      }
 
       // method or params
-      case 3: {
+      case TargeType.METHOD: {
+        targetMeta = Reflect.getMetadata(OPIUM_META, target, key)
+        if (!targetMeta) {
+          targetMeta = new ResolverMeta()
+          targetMeta.target = target
+          // save the resolver metadata
+          Reflect.defineMetadata(OPIUM_META, targetMeta, target, key)
+        }
+
         // if descriptor is a number, then this is a param
         if (typeof descriptor === 'number') {
           // register dependencies if there are any
@@ -151,22 +209,20 @@ export function register (id?: any, lifeCycle?: LifeCycle): any {
         targetMeta.type = ResolverType.FACTORY
         targetMeta.target = descriptor.value
         targetMeta.lifeCycle = lifeCycle || targetMeta.lifeCycle
-        if (id) {
-          targetMeta.id = id
-        } else {
-          targetMeta.id = Reflect.getMetadata('design:returntype', target, key)
-        }
+        targetMeta.id = id || Reflect.getMetadata('design:returntype', target, key)
 
         registerDeps(targetMeta, target, key)
         break
       }
     }
 
-    registry.set(targetMeta.id, targetMeta)
+    if (targetMeta) {
+      registry.set(targetMeta.id || target, targetMeta)
+    }
   }
 }
 
-function registerDeps (targetMeta: ResolverMeta, target: any, key: any) {
+function registerDeps (targetMeta: ResolverMeta, target: any, key?: any) {
   // get the non annotated params and place them in the right index
   const deps: any[] = Reflect.getMetadata('design:paramtypes', target, key) || []
   deps.forEach((d: any, i: number) => {
