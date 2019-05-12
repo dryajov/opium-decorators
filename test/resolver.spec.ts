@@ -1,12 +1,16 @@
 import 'reflect-metadata'
 
-import * as chai from 'chai'
-import dirtyChai = require('dirty-chai')
-const expect: any = chai.expect
-chai.use(dirtyChai)
+import 'mocha'
+import { expect } from 'chai'
 
-import { register, inject, ResolverMeta, OPIUM_META, ResolverType } from '../src'
-import { LifeCycle } from 'opium-ioc'
+import {
+  register,
+  inject,
+  ResolverMeta,
+  OPIUM_META,
+  ResolverType,
+  LifeCycle
+} from '../src'
 
 describe('metadata', () => {
   describe('constructor metadata', () => {
@@ -16,7 +20,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass)
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.eq(MyClass)
@@ -33,7 +36,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass)
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(id)
@@ -50,7 +52,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass)
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(id)
@@ -75,7 +76,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass)
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(id)
@@ -85,14 +85,10 @@ describe('metadata', () => {
       expect(meta.lifeCycle).to.eq(LifeCycle.SINGLETON)
 
       const [param1, param2] = meta.deps
-      expect(param1).to.exist()
       expect(param1).to.be.instanceOf(ResolverMeta)
-
       expect(param1.id).to.deep.eq('name')
 
-      expect(param2).to.exist()
       expect(param2).to.be.instanceOf(ResolverMeta)
-
       expect(param2.id).to.deep.eq('id')
     })
   })
@@ -109,7 +105,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass.prototype, 'method')
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(MyReturnType)
@@ -131,7 +126,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass.prototype, 'method')
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(MyOtherReturnType)
@@ -152,7 +146,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass.prototype, 'method')
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(MyReturnType)
@@ -163,9 +156,7 @@ describe('metadata', () => {
 
       const [param1] = meta.deps
 
-      expect(param1).to.exist()
       expect(param1).to.be.instanceOf(ResolverMeta)
-
       expect(param1.id).to.deep.eq('name')
     })
 
@@ -181,7 +172,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass.prototype, 'method')
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(MyReturnType)
@@ -192,9 +182,7 @@ describe('metadata', () => {
 
       const [param1] = meta.deps
 
-      expect(param1).to.exist()
       expect(param1).to.be.instanceOf(ResolverMeta)
-
       expect(param1.id).to.deep.eq(MyParam)
     })
 
@@ -210,7 +198,6 @@ describe('metadata', () => {
       }
 
       const meta: ResolverMeta = Reflect.getMetadata(OPIUM_META, MyClass.prototype, 'method')
-      expect(meta).to.exist()
       expect(meta).to.be.instanceOf(ResolverMeta)
 
       expect(meta.id).to.deep.eq(MyReturnType)
@@ -221,20 +208,39 @@ describe('metadata', () => {
 
       const [param1, param2] = meta.deps
 
-      expect(param1).to.exist()
       expect(param1).to.be.instanceOf(ResolverMeta)
-
       expect(param1.id).to.deep.eq(MyParam)
 
-      expect(param2).to.exist()
       expect(param2).to.be.instanceOf(ResolverMeta)
-
       expect(param2.id).to.deep.eq('name')
     })
   })
 })
 
 describe('decorators', () => {
+  it('should fail injecting', (done) => {
+    process.once('unhandledRejection', (event: any) => {
+      expect(event).to.be.instanceOf(Error)
+      expect(event.message).to.match(/no dependency with name "name" found!/)
+      done()
+    })
+
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class MyApp {
+      @inject('factory')
+      // tslint:disable-next-line: no-empty
+      static factory (param1: MyClass, @register('name') name: string) {
+      }
+    }
+  })
+
   it('should inject constructor', (done) => {
     @register()
     class MyClass {
@@ -296,10 +302,132 @@ describe('decorators', () => {
     }
 
     class MyApp {
-      @inject()
+      @inject('factory')
       factory (param1: MyClass, @register('name') name: string) {
         expect(param1.greet).to.be.eq('hello world!')
         expect(name).to.be.eq('bob')
+        done()
+      }
+    }
+  })
+
+  it('should inject property', (done) => {
+    @register()
+    class MyClass {
+      @register('first')
+      first!: string
+
+      @register('last')
+      last!: string
+
+      nameC: string
+      constructor () {
+        this.nameC = 'ohMy!!'
+      }
+    }
+
+    class Name {
+      @register('first')
+      name (): string {
+        return 'bob'
+      }
+
+      @register('last')
+      last (): string {
+        return 'smith'
+      }
+    }
+
+    class MyApp {
+      @inject('factory')
+      factory (param1: MyClass) {
+        expect(param1.first).to.be.eq('bob')
+        expect(param1.last).to.be.eq('smith')
+        done()
+      }
+    }
+  })
+
+  it('should inject static property', (done) => {
+    @register()
+    class MyClass {
+      @register('first')
+      first!: string
+
+      @register('last')
+      last!: string
+
+      nameC: string
+      constructor () {
+        this.nameC = 'js instance prop'
+      }
+    }
+
+    class Name {
+      @register('first')
+      static first: string = 'bob'
+
+      @register('last')
+      static last: string = 'smith'
+    }
+
+    class MyApp {
+      @inject('factory')
+      factory (param1: MyClass) {
+        expect(param1.first).to.be.eq('bob')
+        expect(param1.last).to.be.eq('smith')
+        done()
+      }
+    }
+  })
+
+  it('should inject accesors', (done) => {
+    @register()
+    class MyClass {
+      _first!: string
+      _last!: string
+
+      @register('first')
+      set first (s) {
+        this._first = s
+      }
+
+      get first (): string {
+        return this._first
+      }
+
+      @register('last')
+      set last (s) {
+        this._last = s
+      }
+
+      get last (): string {
+        return this._last
+      }
+
+      nameC: string
+      constructor () {
+        this.nameC = 'js instance prop'
+      }
+    }
+
+    class Name {
+      @register('first')
+      get first (): string {
+        return 'bob'
+      }
+
+      @register('last')
+      get last (): string {
+        return 'smith'
+      }
+    }
+
+    class MyApp {
+      @inject('factory')
+      factory (param1: MyClass) {
+        expect(param1.first).to.be.eq('bob')
+        expect(param1.last).to.be.eq('smith')
         done()
       }
     }
@@ -322,27 +450,7 @@ describe('decorators', () => {
     }
 
     class MyApp {
-      @inject()
-      static factory (param1: MyClass, @register('name') name: string) {
-        expect(param1.greet).to.be.eq('hello world!')
-        expect(name).to.be.eq('bob')
-        done()
-      }
-    }
-  })
-
-  // FIXME: this should fail
-  it('should fail injecting', (done) => {
-    @register()
-    class MyClass {
-      public greet: string
-      constructor () {
-        this.greet = 'hello world!'
-      }
-    }
-
-    class MyApp {
-      @inject()
+      @inject('factory')
       static factory (param1: MyClass, @register('name') name: string) {
         expect(param1.greet).to.be.eq('hello world!')
         expect(name).to.be.eq('bob')
