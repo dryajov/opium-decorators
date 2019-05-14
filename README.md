@@ -110,9 +110,14 @@ import { register, injectableFactory } from './src'
   }
 
   const dep: any = injectableFactory('MyContainerName')(App)
-  const myApp: App = await dep.inject()
-
-  console.log(myApp.myName.lastFirst)
+  try {
+    // inject() will throw/reject on error
+    const myApp: App = await dep.inject()
+    console.log(myApp.myName.lastFirst)
+  } catch(e) {
+    console.error(e)
+    return
+  }
 })()
 ```
 
@@ -145,6 +150,25 @@ The later allows using a decorator (`@inject()`), to initiate the injection flow
 In most cases, using the `implicit` flow is preferred. With an IoC container all injection and dependencies should be managed by the container itself, that includes determining when the injection cycle begins. This is convenient and reduces complex entry points setup and maintenance.
 
 The `explicit` mode, on the other hand, is there to allow precicely controlling when the cycle begins. This is useful in situations where there is already a clear entry point, for example a server application that only injects newly incoming connections but leaves the rest out of the domain of the IoC container. In other words, this is here merely to cover for those edge cases where using the `implicit` flow is not possible.
+
+## WARNING: Unhandled Promise rejections
+
+There is no agreed way to handle unhandled Promise rejections across different runtimes. Node will print a warning, but otherwise continue execution (although future versions of Node will terminate the process on unhandled rejections). Browsers will log the error to console but most will continue execution as well. 
+
+Given the async nature of Opium, it is easy to run into situations where an error in the injection cycle will throw/reject, Opium itself catches the error and properly logs it with the `debug` module under the `*opium*` namespace, as well as propagates it further down so that the application can continue handling it appropriately.
+
+However, as it stands today (May 2019), without a proper global rejection handler in your respective runtime, your application might simply appear to hang! The consensus across runtimes seems to move thowards the "immediately terminate execution" direction, which I fully support, but right now this is not yet the case. 
+
+To prevent wasted time and a possible loss of bodily hair, please register a **global rejection handler** as well as enable Opium logging with `DEBUG='*opium*'`.
+
+Please refer to your runtime documentation on how to handle unhandled rejections, but for your convenience here are some links to popular runtimes that illustrate how to do just that:
+
+- Browsers 
+  - https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event
+- Node 
+  - https://nodejs.org/api/process.html#process_event_unhandledrejection
+
+But YMMW...
 
 ## Api
 
