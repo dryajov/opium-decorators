@@ -245,3 +245,6 @@ class App {
   }
 }
 ```
+
+# Licence 
+## **MIT**
