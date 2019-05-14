@@ -14,7 +14,7 @@ Typescript (and possibly ES7/ES8), have varying support for [decorators](https:/
 
 DI is a powerful technique that allows decoupling an object's dependencies and their lifecycle from the consuming object, this has clear benefits when it comes to testability and leads to overall cleaner and more maintainable code. 
 
-One of the most tedious and error pronet parts of building complex applications is _who/where_ is an object created? DI removes this dilemma altogether and simply says "all dependencies are external to the consuming object". This is nice, but _who_ really creates and manages this dependencies? This is where IoC comes in handy - it enables DI in a more straightforward and cleaner way. Without it, doing DI becomes and exercise in building complex initialization sequences - IoC is te bit of magic that makes DI "just work".
+One of the most tedious and error prone parts of building complex applications is _what/where_ is an object created? DI removes this dilemma altogether and simply says "all dependencies are external to the consuming object". This is nice, but _what_ really creates and manages this dependencies? This is where IoC comes in handy - it enables DI in a more straightforward and cleaner way. Without it, doing DI becomes and exercise in building complex initialization sequences - IoC is te bit of magic that makes DI "just work".
 
 I wanted a flexible and powerful IoC container, that allowed complex injection cycles and supported asynchronous dependency resolution. At the time, there was nothing like it so I built [Opium](https://github.com/dryajov/opium). Over time it has prooven useful to me, however, it's programattic nature made it a bit of a kludge to use. Dependencies still have to be registered and assembled in a "central place", or worse the container has to be carried around everywhere. With Typescript and its decorator support, it is now possible to masquerade the programattic nature of Opium and instead expose a consisten and simple set of decorators that allow registering a dependency right where it's being declared.
 
@@ -142,7 +142,7 @@ The later allows using a decorator (`@inject()`), to initiate the injection flow
 
 #### Why have two different way of initiating the injection flow? 
 
-In most cases, using the `implicit` flow is preferred. With an IoC container all injection and dependencies should be managed by the container itself, that includes determining when the injection cycle begins, this is convenient and reduces complex entry points setup and maintenance.
+In most cases, using the `implicit` flow is preferred. With an IoC container all injection and dependencies should be managed by the container itself, that includes determining when the injection cycle begins. This is convenient and reduces complex entry points setup and maintenance.
 
 The `explicit` mode, on the other hand, is there to allow precicely controlling when the cycle begins. This is useful in situations where there is already a clear entry point, for example a server application that only injects newly incoming connections but leaves the rest out of the domain of the IoC container. In other words, this is here merely to cover for those edge cases where using the `implicit` flow is not possible.
 
@@ -187,7 +187,7 @@ class MyClass {
 }
 
 // register under a different type 
-// NOTE: The object should at least have a similar shape to the registered type!
+// NOTE: The id type should at least have a similar shape to the registered type!
 @register(BaseClass)
 class MyClass extends BaseClass {
 }
