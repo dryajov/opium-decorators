@@ -1,5 +1,5 @@
 {
-  "name": "opium-decorator-resolvers",
+  "name": "opium-decorator",
   "version": "0.0.1",
   "main": "lib/index.js",
   "private": false,
