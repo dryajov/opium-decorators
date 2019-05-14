@@ -41,6 +41,13 @@ function isSimpleType (name: string) {
 }
 
 const registry: Map<any, ResolverMeta> = new Map()
+/**
+ * Register dependencies with a container starting
+ * from the root dependency.
+ *
+ * @param rootDep - the roo dependency to start injecting from
+ * @param container - the container to register with
+ */
 function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
   const stack: ResolverMeta[] = []
   stack.push(rootDep)
@@ -106,20 +113,46 @@ function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
   }
 }
 
-export let container: Opium
+let container: Opium | null
+/**
+ * Get an injectable factory - a factory that allows
+ * retrieving dependencies from the container. This allows
+ * initiation the injection cycle explicitelly.
+ *
+ * @param name - name of the container
+ * @param lifeCycle - default lifecycle of the container
+ */
 export function injectableFactory (name ?: string, lifeCycle ?: LifeCycle) {
   container = new Opium(name, lifeCycle)
   return getInjectable
 }
 
+/**
+ * Get an `injectable` (opium Dependency) for the provided targe and key.
+ *
+ * @private
+ * @param target - the target to get an injectable dependency for
+ * @param key - optional key to fetch the dependency for
+ *              only required for methods, properties and accessors
+ */
 function getInjectable (target: any, key?: any) {
   // now lets register everything with the container the deps graph
   const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
-  registerWithContainer(depMeta, container)
-  const injectable: Dependency = container.getDep(depMeta.id)
+  registerWithContainer(depMeta, container!)
+  const injectable: Dependency = container!.getDep(depMeta.id)
+  container = null // don't reference container anymore
   return injectable
 }
 
+/**
+ * Initiate an implicit dependency injection cycle.
+ * It should be use with classes (constructors) and
+ * static methods.
+ *
+ * @param id - the id of the dependency
+ * @param name - the name of the container
+ * @param lifeCycle - the default lifecicle of the container
+ */
 export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCycle): any {
   injectableFactory(name, lifeCycle)
   return function factory (...args: any[]) {
@@ -134,6 +167,7 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
     nextTick(async () => {
       try {
         await injectable.inject()
+        container = null
       } catch (e) {
         debug(e)
         return Promise.reject(e)
@@ -142,6 +176,19 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
   }
 }
 
+/**
+ * Register a dependency with the container.
+ *
+ * This is a decorator factory that can be used to register
+ * classes, methods, static methods and properties, as well as
+ * member accesors.
+ *
+ * Simple types (numbers, strings, etc) require an id and will break
+ * if not provided.
+ *
+ * @param id - (optional) an id to use for this dependency
+ * @param lifeCycle - the lifecycle this dependency is registered with
+ */
 export function register (id?: any, lifeCycle?: LifeCycle): any {
   return function factory (...args: any[]) {
     const [target, key, descriptor] = args
