@@ -1,8 +1,6 @@
 # Opium Decorators
 
-> Typescript based decorators for opium
-
-## Please refer to [Opium](https://github.com/dryajov/opium) documentation before continuing.
+> Typescript based decorators for opium. Please refer to [Opium](https://github.com/dryajov/opium) documentation before continuing.
 
 ## What is this?
 
