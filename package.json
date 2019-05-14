@@ -1,7 +1,7 @@
 {
-  "name": "opium-decorator",
+  "name": "opium-decorators",
   "version": "1.0.0",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "private": false,
   "license": "MIT",
   "repository": {
