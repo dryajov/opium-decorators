@@ -14,7 +14,7 @@ Typescript (and possibly ES7/ES8), have varying support for [decorators](https:/
 
 DI is a powerful technique that allows decoupling an object's dependencies and their lifecycle from the consuming object, this has clear benefits when it comes to testability and leads to overall cleaner and more maintainable code. 
 
-One of the most tedious and error prone parts of building complex applications is _what/where_ is an object created? DI removes this dilemma altogether and simply says "all dependencies are external to the consuming object". This is nice, but _what_ really creates and manages this dependencies? This is where IoC comes in handy - it enables DI in a more straightforward and cleaner way. Without it, doing DI becomes and exercise in building complex initialization sequences - IoC is te bit of magic that makes DI "just work".
+One of the most tedious and error prone parts of building complex applications is _what/where_ is an object created? DI removes this dilemma altogether and simply says "all dependencies are external to the consuming object". This is nice, but _what_ really creates and manages this dependencies? This is where IoC comes in handy - it enables DI in a more straightforward and cleaner way. Without it, doing DI becomes and exercise in building complex initialization sequences - IoC is the bit of magic that makes DI "just work".
 
 I wanted a flexible and powerful IoC container, that allowed complex injection cycles and supported asynchronous dependency resolution. At the time, there was nothing like it so I built [Opium](https://github.com/dryajov/opium). Over time it has prooven useful to me, however, it's programattic nature made it a bit of a kludge to use. Dependencies still have to be registered and assembled in a "central place", or worse the container has to be carried around everywhere. With Typescript and its decorator support, it is now possible to masquerade the programattic nature of Opium and instead expose a consisten and simple set of decorators that allow registering a dependency right where it's being declared.
 
@@ -28,7 +28,7 @@ IoC is an established technique. Countles projects - including high profile ones
 
 Since Opium supports a broad set of dependency types, it allows this set of decorators to inject _anything_ that can be decorated. This means that it supports constructor injection, argument injection and property injection. In other words, dependencies can be injected to constructors, static and instance methods, static properties and instance properties and accessors (getters/setters).
 
-In addition, since Opium supports asynchronous DI it is possible to inject `Promises` and other `async` methods, in which case the result of the asynchronous operation is going to be injected.
+In addition, since Opium supports asynchronous DI it is possible to inject `Promises` and `async` methods, in which case the result of the asynchronous operation is going to be injected.
 
 ### Usage
 
@@ -186,9 +186,9 @@ But YMMW...
 > *NOTE: Use this style only in cases where `explicit` injection is preferred, use `inject()` in all other cases.*
 
 - *`injectableFactory(name: string, lifeCycle: LifeCycle) => (target: any, key?: any) => Dependency`* - Create a factory that allows retrieving an Opium `Dependency`. This dependency can then be injected by calling its `.inject()` method. Usually this will be the top level dependency, or entry point of the application.
-  - `name: string` - the name of the container (same functionality as in the case of `@inject()`)
-  - `lifeCycle: LifeCycle` - the default lifecycle of the container (same functionality as in the case of `@inject()`)
-  - `(target: any, key?: any) => Dependency` - the factory to retrieve an Opium injectable `Dependency` object.
+  - `name: string` - the name of the container (functionally same as in the case of `@inject()`)
+  - `lifeCycle: LifeCycle` - the default lifecycle of the container (functionally same as in the case of `@inject()`)
+  - `(target: any, key?: any) => Dependency` (return function) - the factory to retrieve an Opium injectable `Dependency` object.
     - `target: any` - the target object to inject, can be either a class or static/instance method.
     - `key?: string` - an optional `key` used to lookup the dependency, only needed in the case of methods - this should be the method name itself.
 
