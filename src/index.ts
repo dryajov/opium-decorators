@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { Opium, LifeCycle, Dependency } from 'opium-ioc'
-import { nextTick } from 'async'
+import { nextTick, any } from 'async'
 import { debug as debugFactory } from 'debug'
 
 const debug = debugFactory('opium-decorator-resolvers')
@@ -106,9 +106,22 @@ function registerWithContainer (rootDep: ResolverMeta, container: Opium) {
   }
 }
 
-let container: Opium
-export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCycle): any {
+export let container: Opium
+export function injectableFactory (name ?: string, lifeCycle ?: LifeCycle) {
   container = new Opium(name, lifeCycle)
+  return getInjectable
+}
+
+function getInjectable (target: any, key?: any) {
+  // now lets register everything with the container the deps graph
+  const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
+  registerWithContainer(depMeta, container)
+  const injectable: Dependency = container.getDep(depMeta.id)
+  return injectable
+}
+
+export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCycle): any {
+  injectableFactory(name, lifeCycle)
   return function factory (...args: any[]) {
     const [target, key] = args
     // first inject the app itself
@@ -117,13 +130,10 @@ export function inject (id?: string | Symbol, name?: string, lifeCycle?: LifeCyc
       depFactory(...args)
     }
 
-    // now lets register everything with the container the deps graph
-    const depMeta: ResolverMeta = Reflect.getMetadata(OPIUM_META, target, key)
-    registerWithContainer(depMeta, container)
-    const app: Dependency = container.getDep(depMeta.id)
+    const injectable: any = getInjectable(target, key)
     nextTick(async () => {
       try {
-        await app.inject()
+        await injectable.inject()
       } catch (e) {
         debug(e)
         return Promise.reject(e)

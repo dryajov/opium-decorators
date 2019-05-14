@@ -9,8 +9,10 @@ import {
   ResolverMeta,
   OPIUM_META,
   ResolverType,
-  LifeCycle
+  LifeCycle,
+  injectableFactory
 } from '../src'
+import { Dependency } from 'opium-ioc'
 
 describe('metadata', () => {
   describe('constructor metadata', () => {
@@ -457,5 +459,92 @@ describe('decorators', () => {
         done()
       }
     }
+  })
+
+  it('shoudl allow explicit injects on constructors', async () => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    @register()
+    class MyApp {
+      greet!: string
+      constructor (myClass: MyClass) {
+        expect(myClass.greet).to.be.eq('hello world!')
+        this.greet = myClass.greet
+      }
+    }
+
+    const injectable = injectableFactory()(MyApp)
+    expect(injectable).to.be.instanceOf(Dependency)
+    const myApp: MyApp = await injectable.inject()
+    expect(myApp).to.be.instanceOf(MyApp)
+    expect(myApp.greet).to.be.eq('hello world!')
+  })
+
+  it('shoudl allow explicit injects on static methods', async () => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class MyApp {
+      greet!: string
+
+      constructor (myClass: MyClass) {
+        expect(myClass.greet).to.be.eq('hello world!')
+        this.greet = myClass.greet
+      }
+
+      @register()
+      static factory (myClass: MyClass): MyApp {
+        return new MyApp(myClass)
+      }
+    }
+
+    const injectable = injectableFactory()(MyApp, 'factory')
+    expect(injectable).to.be.instanceOf(Dependency)
+    const myApp: MyApp = await injectable.inject()
+    expect(myApp).to.be.instanceOf(MyApp)
+    expect(myApp.greet).to.be.eq('hello world!')
+  })
+
+  it('shoudl allow explicit injects on methods', async () => {
+    @register()
+    class MyClass {
+      public greet: string
+      constructor () {
+        this.greet = 'hello world!'
+      }
+    }
+
+    class MyApp {
+      greet!: string
+
+      constructor () {
+        this.greet = 'ahoy!!'
+      }
+
+      @register('factory')
+      factory (myClass: MyClass): void {
+        expect(myClass.greet).to.be.eq('hello world!')
+        this.greet = myClass.greet
+      }
+    }
+
+    const myApp: MyApp = new MyApp()
+    const injectable = injectableFactory()(myApp, 'factory')
+    expect(injectable).to.be.instanceOf(Dependency)
+    // no way of telling what instance this method need to be injected to
+    injectable.dep = injectable.dep.bind(myApp)
+    await injectable.inject()
+    expect(myApp.greet).to.be.eq('hello world!')
   })
 })
