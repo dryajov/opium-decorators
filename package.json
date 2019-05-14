@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dryajov/opium-decorator-resolvers.git"
+    "url": "git://github.com/dryajov/opium-decorators.git"
   },
   "engines": {
     "node": ">=0.10.0"
