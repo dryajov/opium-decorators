@@ -1,9 +1,15 @@
 import 'reflect-metadata'
-import { Opium, LifeCycle, Dependency } from 'opium-ioc'
-import { nextTick, any } from 'async'
-import { debug as debugFactory } from 'debug'
 
-const debug = debugFactory('opium-decorator-resolvers')
+import { nextTick } from 'async'
+import Debug from 'debug'
+
+import {
+  Opium,
+  LifeCycle,
+  Dependency
+} from 'opium-ioc'
+
+const debug = Debug('opium-decorator-resolvers')
 
 export { LifeCycle }
 export const OPIUM_META = Symbol.for('design:opium:meta')
@@ -128,7 +134,7 @@ export function injectableFactory (name ?: string, lifeCycle ?: LifeCycle) {
 }
 
 /**
- * Get an `injectable` (opium Dependency) for the provided targe and key.
+ * Get an `injectable` (opium Dependency) for the provided target and key.
  *
  * @private
  * @param target - the target to get an injectable dependency for

@@ -543,7 +543,7 @@ describe('decorators', () => {
     const injectable = injectableFactory()(myApp, 'factory')
     expect(injectable).to.be.instanceOf(Dependency)
     // no way of telling what instance this method need to be injected to
-    injectable.dep = injectable.dep.bind(myApp)
+    injectable.target = injectable.target.bind(myApp)
     await injectable.inject()
     expect(myApp.greet).to.be.eq('hello world!')
   })
