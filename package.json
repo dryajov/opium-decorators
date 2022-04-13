@@ -40,7 +40,7 @@
     "Opium inversion of control decorators"
   ],
   "dependencies": {
-    "async": "^2.6.2",
+    "async": "^3.2.2",
     "debug": "^4.1.1",
     "opium-ioc": "^2.4.1",
     "reflect-metadata": "^0.1.13"
